@@ -8,13 +8,16 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-un", "--username", type=str, required=True)
-parser.add_argument("-pw", "--password", type=str, required=True)
-parser.add_argument("-ht", "--host", type=str, required=True)
-parser.add_argument("-ft", "--first", type=int, required=True)
-parser.add_argument("-lt", "--last", type=int, required=True)
-parser.add_argument("-skey", '--sourkey', type=str, required=True)
-parser.add_argument("-dkey", '--destkey', type=str, required=True)
+parser.add_argument("-un", "--username", type=str, required=True,
+                    help="Your Jira email id. Script is tested with admin access")
+parser.add_argument("-pw", "--password", type=str, required=True,
+                    help="Your Jira API token.")
+parser.add_argument("-ht", "--host", type=str, required=True,
+                    help="Jira host url. eg: https://www.google.atlassian.net")
+parser.add_argument("-skey", '--sourkey', type=str, required=True,
+                    help="Project key of old project")
+parser.add_argument("-dkey", '--destkey', type=str, required=True,
+                    help="project key for new project")
 parser.add_argument("-c", "--clean", type=bool, required=False, default=True,
                     help="Set this flag to try if you want to delete all issues " +
                          "and fix versions in destination project before creating " +
@@ -157,7 +160,9 @@ def migrate_comment(issue_key):
 
 
 def migrate_issue(issue_key):
-    if issue_map.keys()
+    if issue_map.keys():
+        print("Issue {} is already created. Ignoring it", issue_key)
+
     response = requests.request(
         "GET",
         url + "/rest/api/2/issue/" + str(issue_key),
