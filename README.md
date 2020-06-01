@@ -1,5 +1,8 @@
-# jira-classic-to-next-gen
+# Jira classic to Next Gen Migration
 Jira does not support CSV import facility in next gen project. This script allows you to migrate a classic project to next gen project.
+
+### Dependency
+- Python > 3.7
 
 ### Supported migration
 - Epics
