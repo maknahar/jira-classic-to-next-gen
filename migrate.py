@@ -243,117 +243,122 @@ def migrate_issue(issue_key):
         transition(migrated_key, issue_fields["status"]["name"])
         migrate_comment(issue_key)
 
-    def transition(issue_key, status):
-        transitions(issue_key)
-        data = {
-            "transition": {
-                "id": transition_map[status.upper()]
-            }
+
+def transition(issue_key, status):
+    transitions(issue_key)
+    data = {
+        "transition": {
+            "id": transition_map[status.upper()]
         }
+    }
 
-        response = requests.request(
-            "POST",
-            url + "/rest/api/2/issue/{}/transitions".format(issue_key),
-            headers=headers,
-            auth=auth,
-            json=data
-        )
+    response = requests.request(
+        "POST",
+        url + "/rest/api/2/issue/{}/transitions".format(issue_key),
+        headers=headers,
+        auth=auth,
+        json=data
+    )
 
-        if response.status_code > 201:
-            logging.error("Error in transitioning issue. Please file a bug if you think this is a bug %s %s %s",
-                          issue_key,
-                          response.json(),
-                          data)
-            non_migrated_issue[issue_key] = response.json()
+    if response.status_code > 201:
+        logging.error("Error in transitioning issue. Please file a bug if you think this is a bug %s %s %s",
+                      issue_key,
+                      response.json(),
+                      data)
+        non_migrated_issue[issue_key] = response.json()
 
-        logging.debug("migrated {} to {}".format(issue_key, status))
+    logging.debug("migrated {} to {}".format(issue_key, status))
 
-    def delete_release(release):
-        response = requests.request(
-            "DELETE",
-            url + "/rest/api/2/version/" + release["id"],
-            headers=headers,
-            auth=auth
-        )
 
-        if response.status_code >= 400:
-            logging.error("Unable to delete release %s %s", release["name"], response.json())
+def delete_release(release):
+    response = requests.request(
+        "DELETE",
+        url + "/rest/api/2/version/" + release["id"],
+        headers=headers,
+        auth=auth
+    )
 
-        logging.debug("Deleted release %s", release["name"])
+    if response.status_code >= 400:
+        logging.error("Unable to delete release %s %s", release["name"], response.json())
 
-    def delete_issue(issue):
-        response = requests.request(
-            "DELETE",
-            url + "/rest/api/2/issue/" + issue["key"],
-            headers=headers,
-            auth=auth
-        )
+    logging.debug("Deleted release %s", release["name"])
 
-        if response.status_code >= 400:
-            logging.error("Unable to delete issue %s %s", issue["key"], response.json())
 
-        logging.debug("Deleted issue %s", issue["key"])
+def delete_issue(issue):
+    response = requests.request(
+        "DELETE",
+        url + "/rest/api/2/issue/" + issue["key"],
+        headers=headers,
+        auth=auth
+    )
 
-    def clean_project():
-        if not args.clean:
-            logging.warning("Clean flag is off. This can result into duplicate issues in new project")
-            return
+    if response.status_code >= 400:
+        logging.error("Unable to delete issue %s %s", issue["key"], response.json())
+
+    logging.debug("Deleted issue %s", issue["key"])
+
+
+def clean_project():
+    if not args.clean:
+        logging.warning("Clean flag is off. This can result into duplicate issues in new project")
+        return
+
+    response = requests.request(
+        "GET",
+        url + "/rest/api/2/project/" + args.destkey + "/versions",
+        headers=headers,
+        auth=auth
+    )
+
+    logging.info("Found {} versions in new project. Deleting them".format(len(response.json())))
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        executor.map(delete_release, response.json())
+
+    start_at = 0
+    max_results_requested = 100
+    result_received = 100
+    while max_results_requested == result_received:
+        search_url = url + "/rest/api/2/search?jql=project={}&startAt={}&maxResults={}".format(
+            args.destkey,
+            start_at,
+            max_results_requested)
 
         response = requests.request(
             "GET",
-            url + "/rest/api/2/project/" + args.destkey + "/versions",
+            search_url,
             headers=headers,
             auth=auth
         )
 
-        logging.info("Found {} versions in new project. Deleting them".format(len(response.json())))
+        data = response.json()
+        result_received = len(data["issues"])
+        start_at = start_at + result_received
 
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            executor.map(delete_release, response.json())
+        with ThreadPoolExecutor() as executor:
+            executor.map(delete_issue, data["issues"])
 
-        start_at = 0
-        max_results_requested = 100
-        result_received = 100
-        while max_results_requested == result_received:
-            search_url = url + "/rest/api/2/search?jql=project={}&startAt={}&maxResults={}".format(
-                args.destkey,
-                start_at,
-                max_results_requested)
 
-            response = requests.request(
-                "GET",
-                search_url,
-                headers=headers,
-                auth=auth
-            )
+clean_project()
 
-            data = response.json()
-            result_received = len(data["issues"])
-            start_at = start_at + result_received
+create_fix_versions()
 
-            with ThreadPoolExecutor() as executor:
-                executor.map(delete_issue, data["issues"])
+for issue_type in ["Epic", "Story", "Task", "Bug", "Sub-task"]:
+    try:
+        create_issues(issue_type)
+    except Exception as e:
+        logging.error('error in creating issue %s', e)
 
-    clean_project()
+with open('migration.csv', 'w') as f:
+    for key in issue_map.keys():
+        f.write("%s,%s\n" % (key, issue_map[key]))
 
-    create_fix_versions()
+with open('errors.csv', 'w') as f:
+    for key in non_migrated_issue.keys():
+        f.write("%s,%s\n" % (key, non_migrated_issue[key]))
 
-    for issue_type in ["Epic", "Story", "Task", "Bug", "Sub-task"]:
-        try:
-            create_issues(issue_type)
-        except Exception as e:
-            logging.error('error in creating issue %s', e)
+parting_msg = "{} issues are not migrated fully or partially because of some error. If number of issues are less," \
+              " you can go ahead and migrate/update them manually from Jira UI. If count is large and error " \
+              "can be solved programmatically, Please raise a bug.\n"
 
-    with open('migration.csv', 'w') as f:
-        for key in issue_map.keys():
-            f.write("%s,%s\n" % (key, issue_map[key]))
-
-    with open('errors.csv', 'w') as f:
-        for key in non_migrated_issue.keys():
-            f.write("%s,%s\n" % (key, non_migrated_issue[key]))
-
-    parting_msg = "{} issues are not migrated fully or partially because of some error. If number of issues are less," \
-                  " you can go ahead and migrate/update them manually from Jira UI. If count is large and error " \
-                  "can be solved programmatically, Please raise a bug.\n"
-
-    logging.info(parting_msg.format(len(non_migrated_issue)))
+logging.info(parting_msg.format(len(non_migrated_issue)))
