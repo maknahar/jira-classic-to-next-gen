@@ -334,8 +334,15 @@ for issue_type in ["Epic", "Story", "Task", "Bug", "Sub-task"]:
     except Exception as e:
         print('error in creating issue', e)
 
+with open('migration.csv', 'w') as f:
+    for key in issue_map.keys():
+        f.write("%s,%s\n" % (key, issue_map[key]))
+
+with open('errors.csv', 'w') as f:
+    for key in non_migrated_issue.keys():
+        f.write("%s,%s\n" % (key, non_migrated_issue[key]))
+
 print(
     "{} issues are not migrated because of some error. If number of issues are less," +
     " you can go ahead and migrate them manually from Jira UI. If count is large and error " +
-    "can be solved programmatically, Please raise a bug.\n".format(len(non_migrated_issue)),
-    non_migrated_issue)
+    "can be solved programmatically, Please raise a bug.\n".format(len(non_migrated_issue)))
