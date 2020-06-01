@@ -23,3 +23,4 @@ Jira does not support CSV import facility in next gen project. This script allow
 ### Note
 - By default, this script cleans next gen project before starting. Using an existing project to migrate to is not recommended.
 - Jira API does not allow a deactivated user as assignee or reporter while creating issue. This script will keep the assignee blank and person running this script will become the reporter in these cases.
+- If there is no error, allmigrated issues would be listed in `migration.csv` and non migrated one in `error.csv`.
