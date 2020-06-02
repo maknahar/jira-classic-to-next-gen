@@ -127,6 +127,9 @@ def create_issues(issue_type):
         result_received = len(data["issues"])
         start_at = start_at + result_received
 
+        if result_received < max_results_requested:
+            logging.warning("Received {} issues for {} in last batch".format(result_received, issue_type))
+
         keys = []
         for issue in data["issues"]:
             keys.append(issue["key"])
@@ -189,7 +192,7 @@ def migrate_issue(issue_key):
             "summary": issue_fields["summary"],
             "description": issue_fields["description"],
             "issuetype": {
-                "id": issue_fields['issuetype']['name']
+                "name": issue_fields['issuetype']['name']
             },
             "project": {
                 "key": args.destkey
@@ -356,13 +359,13 @@ def clean_project():
 
 clean_project()
 
-# create_fix_versions()
-#
-# for issue_type in ["Epic", "Story", "Task", "Bug", "Subtask"]:
-#     try:
-#         create_issues(issue_type)
-#     except Exception as e:
-#         logging.error('error in creating issue %s', e)
+create_fix_versions()
+
+for issue_type in ["Epic", "Story", "Task", "Bug", "Sub-task"]:
+    try:
+        create_issues(issue_type)
+    except Exception as e:
+        logging.error('error in creating issue %s', e)
 
 with open('migration.csv', 'w') as f:
     for key in issue_map.keys():
