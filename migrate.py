@@ -222,6 +222,9 @@ def migrate_issue(issue_key):
     if field_exist(issue_fields, "reporter") and issue_fields["reporter"]["active"]:
         data['fields']["reporter"] = {"id": issue_fields["reporter"]["accountId"]}
 
+    if field_exist(issue_fields, "customfield_10014"):
+        data['fields']["parent"] = {"key": issue_map[issue_fields["customfield_10014"]]}
+
     if field_exist(issue_fields, "parent"):
         data['fields']["parent"] = {"key": issue_map[issue_fields["parent"]["key"]]}
 
