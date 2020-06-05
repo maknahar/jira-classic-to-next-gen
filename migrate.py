@@ -164,7 +164,7 @@ def migrate_comment(issue_key):
                 json={"body": comment["body"]}
             )
 
-            if response.status_code > 201:
+            if response.status_code > 300:
                 logging.error("Error in adding comment. Please file a bug if you think this is a bug %s %s %s",
                               response.json(),
                               issue_map[issue_key], comment)
@@ -236,7 +236,7 @@ def migrate_issue(issue_key):
         json=data
     )
 
-    if response.status_code > 201:
+    if response.status_code > 300:
         logging.error("Error in creating issue. Please file a bug if you think this is a bug %s %s %s", issue_key,
                       response.json(),
                       data)
@@ -267,7 +267,7 @@ def transition(issue_key, status):
         json=data
     )
 
-    if response.status_code > 201:
+    if response.status_code > 300:
         logging.error("Error in transitioning issue. Please file a bug if you think this is a bug %s %s %s",
                       issue_key,
                       response.json(),
