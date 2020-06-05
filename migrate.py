@@ -247,8 +247,8 @@ def migrate_issue(issue_key):
     logging.debug("Created issue {} for {}".format(migrated_key, issue_key))
 
     issue_map[issue_key] = migrated_key
-    transition(migrated_key, issue_fields["status"]["name"])
     migrate_comment(issue_key)
+    transition(migrated_key, issue_fields["status"]["name"])
 
 
 def transition(issue_key, status):
