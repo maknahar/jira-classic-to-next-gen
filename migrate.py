@@ -106,7 +106,7 @@ def create_fix_versions():
 
 def create_issues(issue_type):
     start_at = 0
-    max_results_requested = 50
+    max_results_requested = 20
     result_received = max_results_requested
     while max_results_requested == result_received:
         logging.info("Migrating {} {} from {}".format(max_results_requested, issue_type, start_at))
