@@ -3,6 +3,7 @@
 
 import argparse
 import logging
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -45,9 +46,51 @@ non_migrated_issue = {}
 transition_map = {}
 
 if args.verbose:
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.DEBUG)
 else:
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.INFO)
+
+progress_bar = sys.modules[__name__]
+progress_bar.iteration = 0
+progress_bar.total = 0
+
+
+def fill_progress_bar():
+    progress_bar.iteration = progress_bar.iteration + 1
+    printProgressBar(progress_bar.iteration, progress_bar.total, prefix='Progress:', suffix='Complete', length=50)
+
+
+def initiate_progress_bar(total):
+    progress_bar.iteration = 0
+    progress_bar.total = total
+    printProgressBar(progress_bar.iteration, progress_bar.total, prefix='Progress:', suffix='Complete', length=50)
+
+
+# Print iterations progress
+def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█',
+                     printEnd="\r"):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    if total == 0:
+        return
+
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end=printEnd)
+    # Print New Line on Complete
+    if iteration == total:
+        print()
 
 
 def transitions(sample_issue_key):
@@ -80,8 +123,10 @@ def create_fix_versions():
     )
 
     logging.info("Found {} released in your source projects. Migrating them.".format(len(response.json())))
+    initiate_progress_bar(len(response.json()))
 
     for release in response.json():
+        fill_progress_bar()
         data = {
             "description": release["description"],
             "name": release["name"],
@@ -130,18 +175,19 @@ def create_issues(issue_type):
         if result_received < max_results_requested:
             logging.warning("Received {} issues for {} in last batch".format(result_received, issue_type))
 
+        initiate_progress_bar(result_received)
         keys = []
         for issue in data["issues"]:
             keys.append(issue["key"])
 
         if len(keys) > 0:
-            with ThreadPoolExecutor() as executor:
+            with ThreadPoolExecutor(max_workers=1) as executor:
                 executor.map(migrate_issue, keys)
 
 
 def migrate_comment(issue_key):
     start_at = 0
-    max_results_requested = 10
+    max_results_requested = 5
     result_received = max_results_requested
     while max_results_requested == result_received:
         response = requests.request(
@@ -249,10 +295,15 @@ def migrate_issue(issue_key):
     issue_map[issue_key] = migrated_key
     migrate_comment(issue_key)
     transition(migrated_key, issue_fields["status"]["name"])
+    fill_progress_bar()
 
 
 def transition(issue_key, status):
     transitions(issue_key)
+    if status.upper() not in transition_map:
+        logging.error("Cannot move {} to {}. Try moving it from UI".format(issue_key, status))
+        return
+
     data = {
         "transition": {
             "id": transition_map[status.upper()]
@@ -288,6 +339,7 @@ def delete_release(release):
     if response.status_code >= 400:
         logging.error("Unable to delete release %s %s", release["name"], response.json())
 
+    fill_progress_bar()
     logging.debug("Deleted release %s", release["name"])
 
 
@@ -303,6 +355,7 @@ def delete_issue(issue):
         logging.error("Unable to delete issue %s %s", issue["key"], response.json())
 
     logging.debug("Deleted issue %s", issue["key"])
+    fill_progress_bar()
 
 
 def clean_project():
@@ -319,12 +372,15 @@ def clean_project():
 
     logging.info("Found {} versions in new project. Deleting them".format(len(response.json())))
 
+    # Initial call to print 0% progress
+    initiate_progress_bar(len(response.json()))
+
     with ThreadPoolExecutor(max_workers=5) as executor:
         executor.map(delete_release, response.json())
 
     start_at = 0
     max_results_requested = 100
-    result_received = 100
+    result_received = max_results_requested
     while max_results_requested == result_received:
         search_url = url + "/rest/api/2/search?jql=project={}&startAt=0&maxResults={}".format(
             args.destkey,
@@ -347,6 +403,7 @@ def clean_project():
 
         data = response.json()
         issue_count = len(data["issues"])
+        initiate_progress_bar(issue_count)
 
         if issue_count < max_results_requested:
             logging.debug("Received {} issues {}".format(issue_count, response.json()))
@@ -356,7 +413,7 @@ def clean_project():
         result_received = len(data["issues"])
         start_at = start_at + result_received
 
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=5) as executor:
             executor.map(delete_issue, data["issues"])
 
 
