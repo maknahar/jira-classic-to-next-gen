@@ -101,7 +101,8 @@ def transitions(sample_issue_key):
         "GET",
         url + "/rest/api/2/issue/{}/transitions".format(sample_issue_key),
         headers=headers,
-        auth=auth
+        auth=auth,
+        timeout=5
     )
 
     data = response.json()
@@ -119,7 +120,8 @@ def create_fix_versions():
         "GET",
         url + "/rest/api/2/project/" + args.sourkey + "/versions",
         headers=headers,
-        auth=auth
+        auth=auth,
+        timeout=5
     )
 
     logging.info("Found {} released in your source projects. Migrating them.".format(len(response.json())))
@@ -140,18 +142,20 @@ def create_fix_versions():
             url + "/rest/api/2/version",
             headers=headers,
             auth=auth,
-            json=data
+            json=data,
+            timeout=5
         )
 
         if response.status_code > 300:
             logging.error("Error in creating release %s", response.json()["errors"])
+            continue
 
         logging.debug("Created release %s", data["name"])
 
 
 def create_issues(issue_type):
     start_at = 0
-    max_results_requested = 20
+    max_results_requested = 100
     result_received = max_results_requested
     while max_results_requested == result_received:
         logging.info("Migrating {} {} from {}".format(max_results_requested, issue_type, start_at))
@@ -165,8 +169,13 @@ def create_issues(issue_type):
             "GET",
             search_url,
             headers=headers,
-            auth=auth
+            auth=auth,
+            timeout=5
         )
+
+        if response.status_code > 300:
+            logging.error("Error in getting issues %s", response.json()["errors"])
+            continue
 
         data = response.json()
         result_received = len(data["issues"])
@@ -181,54 +190,60 @@ def create_issues(issue_type):
             keys.append(issue["key"])
 
         if len(keys) > 0:
-            with ThreadPoolExecutor(max_workers=1) as executor:
+            with ThreadPoolExecutor() as executor:
                 executor.map(migrate_issue, keys)
 
 
 def migrate_comment(issue_key):
-    start_at = 0
-    max_results_requested = 5
-    result_received = max_results_requested
-    while max_results_requested == result_received:
+    response = requests.request(
+        "GET",
+        url + "/rest/api/2/issue/{}/comment".format(str(issue_key)),
+        headers=headers,
+        auth=auth,
+        timeout=5
+    )
+
+    data = response.json()
+
+    for comment in data["comments"]:
         response = requests.request(
-            "GET",
-            url + "/rest/api/2/issue/{}/comment".format(str(issue_key)),
+            "POST",
+            url + "/rest/api/2/issue/{}/comment".format(issue_map[issue_key]),
             headers=headers,
             auth=auth,
+            json={"body": comment["body"]},
+            timeout=5
         )
 
-        data = response.json()
-        result_received = len(data["comments"])
-        start_at = start_at + result_received
-
-        for comment in data["comments"]:
-            response = requests.request(
-                "POST",
-                url + "/rest/api/2/issue/{}/comment".format(issue_map[issue_key]),
-                headers=headers,
-                auth=auth,
-                json={"body": comment["body"]}
-            )
-
-            if response.status_code > 300:
-                logging.error("Error in adding comment. Please file a bug if you think this is a bug %s %s %s",
-                              response.json(),
-                              issue_map[issue_key], comment)
-                non_migrated_issue[issue_key] = response.json()
-                return
-            logging.debug("Added comment in %s", issue_map[issue_key])
+        if response.status_code > 300:
+            logging.error("Error in adding comment. Please file a bug if you think this is a bug %s %s %s",
+                          response.json(),
+                          issue_map[issue_key], comment)
+            non_migrated_issue[issue_key] = response.json()
+            return
+        logging.debug("Added comment in %s", issue_map[issue_key])
 
 
 def migrate_issue(issue_key):
     if issue_map.get(issue_key):
         logging.warning("Issue {} is already migrated to {} . Ignoring it".format(issue_key, issue_map[issue_key]))
+        return
 
+    # logging.info("{} is migrating".format(issue_key))
     response = requests.request(
         "GET",
         url + "/rest/api/2/issue/" + str(issue_key),
         headers=headers,
-        auth=auth
+        auth=auth,
+        timeout=5
     )
+
+    if response.status_code > 300:
+        logging.error("Error in getting issue. Please file a bug if you think this is a bug %s %s",
+                      response.json(),
+                      issue_key)
+        non_migrated_issue[issue_key] = response.json()
+        return
 
     issue_fields = response.json()['fields']
     issue_key = response.json()['key']
@@ -279,7 +294,8 @@ def migrate_issue(issue_key):
         url + "/rest/api/2/issue",
         headers=headers,
         auth=auth,
-        json=data
+        json=data,
+        timeout=5
     )
 
     if response.status_code > 300:
@@ -290,10 +306,12 @@ def migrate_issue(issue_key):
         return
 
     migrated_key = response.json()["key"]
-    logging.debug("Created issue {} for {}".format(migrated_key, issue_key))
+    # logging.info("Created issue {} for {}".format(migrated_key, issue_key))
 
     issue_map[issue_key] = migrated_key
+    # logging.info("Adding comment in issue {} for {}".format(migrated_key, issue_key))
     migrate_comment(issue_key)
+    # logging.info("Transitioning issue {} for {}".format(migrated_key, issue_key))
     transition(migrated_key, issue_fields["status"]["name"])
     fill_progress_bar()
 
@@ -301,7 +319,7 @@ def migrate_issue(issue_key):
 def transition(issue_key, status):
     transitions(issue_key)
     if status.upper() not in transition_map:
-        logging.error("Cannot move {} to {}. Try moving it from UI".format(issue_key, status))
+        logging.error("Cannot move {} to {}. Try moving it from UI".format(issue_key, status.upper()))
         return
 
     data = {
@@ -315,7 +333,8 @@ def transition(issue_key, status):
         url + "/rest/api/2/issue/{}/transitions".format(issue_key),
         headers=headers,
         auth=auth,
-        json=data
+        json=data,
+        timeout=5
     )
 
     if response.status_code > 300:
@@ -333,7 +352,8 @@ def delete_release(release):
         "DELETE",
         url + "/rest/api/2/version/" + release["id"],
         headers=headers,
-        auth=auth
+        auth=auth,
+        timeout=5
     )
 
     if response.status_code >= 400:
@@ -348,7 +368,8 @@ def delete_issue(issue):
         "DELETE",
         url + "/rest/api/2/issue/" + issue["key"],
         headers=headers,
-        auth=auth
+        auth=auth,
+        timeout=5
     )
 
     if response.status_code >= 400:
@@ -367,7 +388,8 @@ def clean_project():
         "GET",
         url + "/rest/api/2/project/" + args.destkey + "/versions",
         headers=headers,
-        auth=auth
+        auth=auth,
+        timeout=5
     )
 
     logging.info("Found {} versions in new project. Deleting them".format(len(response.json())))
@@ -390,7 +412,8 @@ def clean_project():
             "GET",
             search_url,
             headers=headers,
-            auth=auth
+            auth=auth,
+            timeout=5
         )
 
         if response.status_code > 300:
