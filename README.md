@@ -35,11 +35,11 @@ Jira does not support CSV import facility in next gen project. This script allow
 
 ### How To Execute
 
-####Command:
+#### Command:
 
 `python migrate.py -un {your_email_id} -pw {api_token} -ht {your_jira_host_name} -skey {key_of_classic_project} -dkey {key_of_description_project}`
 
-####Example:
+#### Example:
 
 ```
 > python migrate.py -un maknahar@google.com -pw abc123xyz@1# -ht https://google.atlassian.net -skey GD -dkey GP
