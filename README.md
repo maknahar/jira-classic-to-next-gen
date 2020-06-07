@@ -5,13 +5,20 @@ Jira does not support CSV import facility in next gen project. This script allow
 - Python > 3.7
 
 ### Supported migration
+This script copy following data from classic project to next gen project
 - Epics
 - Stories
 - Tasks
 - Bugs
 - Sub-tasks
+- Story Points
+- Epic to Stories connection
+- Stories to Sub tasks linking
 - Releases
+- Releases to story connections
 - Comments
+- Tags
+- Assignee and reporters
 
 ### Prerequisite
 - Take backup of classic project
