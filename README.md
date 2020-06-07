@@ -35,8 +35,8 @@ This script copy following data from classic project to next gen project
 - Jira next gen does not support multiple start and end status. So move all your card to one end status in Jira classic project. Otherwise, You will see unusually high number of cards in the backlog of next gen project.
 - Disable notifications for the project so assignees and reporter of issues does not get spammed while this script create thousands of issues for you in new project.
 
-### Note
-- This project does not **modify/delete your data in the classic project**. To ensure this, you may want to limit the access to viewer classic project. Hence, it is safe to run the script again if you think migration has not been done correctly due to some configuration issue.
+### Notes
+- This project does not **modify/delete your data in the classic project**. To ensure this, you may want to limit the access to viewer in the classic project. Hence, it is safe to run the script again if you think migration has not been done correctly due to some configuration issue.
 - By default, this script cleans next gen project before starting. Using an existing project to migrate to is not recommended.
 - Jira API does not allow a deactivated user as assignee or reporter while creating issue. This script will keep the assignee blank and person running this script will become the reporter in these cases.
 - If there is no error, all migrated issues would be listed in `migration.csv` and non migrated one in `error.csv`.
