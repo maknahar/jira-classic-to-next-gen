@@ -79,5 +79,5 @@ Progress: |███████████████████████
 2020-06-06 03:24:16,267 INFO: 2468 issues migrated successfully. 2 issues are not migrated fully or partially because of some error. If number of issues are less, you can go ahead and migrate/update them manually from Jira UI. If count is large and error can be solved programmatically, Please raise a bug.
 ```
 
-### Manual Support
+### Support
 I have migrated projects with thousands of issues and hundreds of releases/sprints. However, as Jira allows a lot of customizations, those customization will not be captured in this script. If you need support or require some custom change in the script for your project. You may reach out to me at maknahar@live.in. I will try to respond as soon as possible.
