@@ -1,5 +1,7 @@
 # Jira classic to Next Gen Migration
-Jira does not support CSV import facility in next gen project. This script allows you to migrate a classic project to next gen project.
+Jira does not support CSV import facility in next gen project. Moving epics and issues manually from UI is cumbursome and time consuming. If you are in a situation where you need to migrate projects with thousands of issues, it is physically not possible. Also, Card migration does not migrate essential things like estimate and epic to issue linking.
+
+This script allows you to migrate a classic project to next gen project in a automatic way while preserving all the information.
 
 ### Dependency
 - Python > 3.7
@@ -33,10 +35,11 @@ This script copy following data from classic project to next gen project
 
 ### Recommendations
 - Jira next gen does not support multiple start and end status. So move all your card to one end status in Jira classic project. Otherwise, You will see unusually high number of cards in the backlog of next gen project.
-- Disable notifications for the project so assignees and reporter of issues does not get spammed while this script create thousands of issues for you in new project.
+- Disable notifications for the next-gen project so assignees and reporter of issues does not get spammed while this script create thousands of issues for you in new project.
 
 ### Notes
-- This project does not **modify/delete your data in the classic project**. To ensure this, you may want to limit the access to viewer in the classic project. Hence, it is safe to run the script again if you think migration has not been done correctly due to some configuration issue.
+- This script **DOES NOT MODIFY OR DELETE ANY DATA IN THE CLASSSIC PROJECT**. By the end of successful run of the script, you get a next gen project with same data as classic project. To ensure this, you may want to limit the access to viewer level in the classic project. 
+- It is safe to run the script again if you think migration has not been done correctly due to some configuration issue.
 - By default, this script cleans next gen project before starting. Using an existing project to migrate to is not recommended.
 - Jira API does not allow a deactivated user as assignee or reporter while creating issue. This script will keep the assignee blank and person running this script will become the reporter in these cases.
 - If there is no error, all migrated issues would be listed in `migration.csv` and non migrated one in `error.csv`.
@@ -75,3 +78,6 @@ Progress: |███████████████████████
 Progress: |██████████████████████████████████████████████████| 100.0% Complete
 2020-06-06 03:24:16,267 INFO: 2468 issues migrated successfully. 2 issues are not migrated fully or partially because of some error. If number of issues are less, you can go ahead and migrate/update them manually from Jira UI. If count is large and error can be solved programmatically, Please raise a bug.
 ```
+
+### Need Support
+I have migrated projects with thousands of issues and hundreds of releases/sprints. However, as Jira allows a lot of customizations, those customization will not be captured in this script. If you need support or require some custom change in the script for your project. You may reach out to me at maknahar@live.in. I will try to respond as soon as possible.
