@@ -48,7 +48,7 @@ This script copy following data from classic project to next gen project
 
 #### Command:
 
-`python migrate.py -un {your_email_id} -pw {api_token} -ht {your_jira_host_name} -skey {key_of_classic_project} -dkey {key_of_description_project}`
+`python migrate.py -un {your_email_id} -pw {api_token} -ht {your_jira_host_name} -skey {key_of_classic_project} -dkey {key_of_next_gen_project}`
 
 #### Example:
 
