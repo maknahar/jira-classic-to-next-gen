@@ -31,7 +31,7 @@ This script copy following data from classic project to next gen project
 - Jira does not enable all feature in next gen project by default. Enabled the all the features if you are not sure which one you need.
 - Create all issue types available in classic project in next gen project as well. This setting is available in `project Setting` -> `Issue Types`. It is important issue names match exactly.
 - Make sure your screen elements for issue types are matching in classic and next gen project. This setting is available in `project Setting` -> `Issue Types` -> `Select Type to edit`. e.g If old project has field summary enabled in the screen, enable it for new project as well. To make this easier, just before migration enable all elements for all card type. You can refine them after migration as well in Jira UI.
-- Create all the workflow status lanes in the next jane project and make sure name is matching the statuses exactly. By default, Jira next gen comes with TO DO, In Progress and DONE statuses. Jira does not support creating workflows and new status in workflows programmatically.
+- Create all the workflow status lanes in the next-gen project and make sure name is matching the statuses exactly. By default, Jira next gen comes with TO DO, In Progress and DONE statuses. Jira does not support creating workflows and new status in workflows programmatically.
 
 ### Recommendations
 - Jira next gen does not support multiple start and end status. So move all your card to one end status in Jira classic project. Otherwise, You will see unusually high number of cards in the backlog of next gen project.
