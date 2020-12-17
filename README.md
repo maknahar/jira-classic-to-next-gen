@@ -83,4 +83,4 @@ Progress: |███████████████████████
 - When you migrate an issue via Jira, you get a symlink created from old issue to new issue. i.e. Clicking on old card will link will take you to new one. Unfortunately this is not supported by Jira REST API. 
 
 ### Support
-I have migrated projects with thousands of issues and hundreds of releases/sprints. However, as Jira allows a lot of customizations, those customization will not be captured in this script. If you need support or require some custom change in the script for your project, You may reach out to me at maknahar@live.in. I will try to respond as soon as possible.
+I have migrated projects with thousands of issues and hundreds of releases/sprints. However, as Jira allows a lot of customizations, those customization will not be captured in this script. If you need support or require some custom change in the script for your project, You may reach out to me at mayankpatel91@outlook.com. I will try to respond as soon as possible.
